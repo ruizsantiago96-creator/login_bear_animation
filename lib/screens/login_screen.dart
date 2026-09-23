@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 
 class LoginScreen extends StatefulWidget {
-  const new({super.key});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -19,6 +19,29 @@ SMIBool? _isChecking;
 SMIBool? _isHandsUp;
 SMITrigger? _trigSuccess;
 SMITrigger? _trigFail;
+
+//2.1 Crear variables para FocusNode
+final _emailFocus = FocusNode();
+final _passwordFocus = FocusNode();
+
+//2.2  listeners (0yentes/chismosos)
+@override
+void initState() {
+  super.initState();
+  _emailFocus.addListener(() {
+    //verificar que no sea nulo 
+    if (_isHandsUp != null ) {
+      //Manos abajo al ver email
+      _isHandsUp!.change(false);
+    }
+  });
+  _passwordFocus.addListener(() {
+    //Manos arriba al ver password
+    if (_isHandsUp != null) {
+      _isHandsUp!.change(true);
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -59,10 +82,11 @@ SMITrigger? _trigFail;
               SizedBox(height:10),
               //Campo de texto para email
               TextField(
+                focusNode: _emailFocus,
                 onChanged: (value) {
                   if (_isHandsUp != null) {
                     //No tapes los ojos al ver email
-                    _isHandsUp!.change(false);
+                    //_isHandsUp!.change(false);
                   }
                   //Si isChecking es nulo
                   if (_isChecking == null) return;
@@ -83,11 +107,13 @@ SMITrigger? _trigFail;
               SizedBox(height: 10),
               //Campo de texto para contraseña
                 TextField(
+                  //2.3 asignar el focusNode al TextField
+                  focusNode: _passwordFocus,
                   obscureText: _obscure,
                   onChanged: (value) {
                   if (_isChecking != null) {
                     //No tapes los ojos al ver email
-                    _isChecking!.change(false);
+                   // _isChecking!.change(false);
                   }
                   //Si isChecking es nulo
                   if (_isHandsUp == null) return;
@@ -122,4 +148,11 @@ SMITrigger? _trigFail;
       ),
     );
   }
+  @override
+  void dispose() {
+    //2.4 Liberar memoria de los focusNode
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+}
 }
