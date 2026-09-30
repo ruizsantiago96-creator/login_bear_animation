@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
+import 'dart:async'; //3.1 importar libreria para temporizador
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,6 +20,13 @@ SMIBool? _isChecking;
 SMIBool? _isHandsUp;
 SMITrigger? _trigSuccess;
 SMITrigger? _trigFail;
+//3.2 variable de recorrido de la mirada
+SMINumber? _numLook;
+
+//3.3 Timer para detener la mirada al escribir
+Timer? _typingDebounce;
+
+
 
 //2.1 Crear variables para FocusNode
 final _emailFocus = FocusNode();
@@ -39,6 +47,8 @@ void initState() {
     //Manos arriba al ver password
     if (_isHandsUp != null) {
       _isHandsUp!.change(true);
+      //3.4 mirada neutral al escribir
+      _numLook?.value = 50.0;
     }
   });
 }
@@ -75,6 +85,8 @@ void initState() {
                     _isHandsUp = _controller?.findSMI('isHandsUp');
                     _trigSuccess = _controller?.findSMI('trigSuccess');
                     _trigFail = _controller?.findSMI('trigFail');
+                    //3.5 Vincular numlook 
+                    _numLook = _controller?.findSMI('numLook');
                   },
                 ),
               ),
@@ -119,6 +131,24 @@ void initState() {
                   if (_isHandsUp == null) return;
                   //Activar el modo chismoso
                   _isHandsUp!.change(true);
+                  //3.6 implementar  numLook al escribir
+                  //ajuste de limites del 0 al 100
+                  // 80 es la medida calibracion
+                  final look = (value.length * 80.0 * 100.00).clamp(0.0, 100.0);
+                  // Clamp para limitar el valor entre 0 y 100
+                  _numLook?.value = look;
+
+
+                  //3.7 debounce: si vuelve a teclear, reinicia el contador 
+                  //cancelar el temporizador si ya existe
+                  _typingDebounce?.cancel();
+                  //crea un nuevo timer
+                  _typingDebounce = Timer(const Duration(seconds: 3), () {
+                    //3Si se cierra la pantalla, quita contador 
+                    if (!mounted) return;
+                    //Mirada neutra
+                    _isChecking?.change(false);
+                  });
                 },
                 //Para mostrar el teclado
                 decoration: InputDecoration(
@@ -153,6 +183,7 @@ void initState() {
     //2.4 Liberar memoria de los focusNode
     _emailFocus.dispose();
     _passwordFocus.dispose();
+    _typingDebounce?.cancel(); //3.9 eliminar el timer
     super.dispose();
 }
 }
