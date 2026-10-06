@@ -14,6 +14,10 @@ class _LoginScreenState extends State<LoginScreen> {
   // Control para mostrar/ocultar contraseña
   bool _obscure = true;
 
+  // 5.1 Variables para controlar el checkbox y el estado de la animación
+  bool _rememberMe = false;
+  bool _isAnimating = false;
+
   // 1.1 Crear el cerebro de la animación
   StateMachineController? _controller;
 
@@ -50,6 +54,15 @@ class _LoginScreenState extends State<LoginScreen> {
         .hasMatch(password);
   }
 
+  // 5.3 Escuchar el cambio de estado de la animación
+  void _onStateChange(String stateMachineName, String stateName) {
+    if (stateName == 'idle' && mounted) {
+      setState(() {
+        _isAnimating = false;
+      });
+    }
+  }
+
   // 4.4 Dar acción al botón
   void _onLogin() {
     // 4.5 De lo que escribió el usuario, quitar espacios en blanco
@@ -73,6 +86,11 @@ class _LoginScreenState extends State<LoginScreen> {
     _isChecking?.change(false);
     _isHandsUp?.change(false);
     _numLook?.value = 50.0;
+
+    // 5.2 Desactivar el botón mientras se ejecuta la animación
+    setState(() {
+      _isAnimating = true;
+    });
 
     // 4.9 Activar triggers
     if (emailError == null && passwordError == null) {
@@ -127,6 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       _controller = StateMachineController.fromArtboard(
                         artboard,
                         'Login Machine',
+                        onStateChange: _onStateChange,
                       );
 
                       // 1.2 Vincular animación
@@ -215,20 +234,37 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                // 4.12 Texto "Olvidé mi contraseña"
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      alignment: Alignment.centerRight,
-                      padding: EdgeInsets.zero,
+                // 4.12 Recordar sesión y recuperar contraseña
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Checkbox(
+                          value: _rememberMe,
+                          onChanged: (value) {
+                            setState(() {
+                              // 5.5 Actualizar el estado del checkbox
+                              _rememberMe = value ?? false;
+                            });
+                          },
+                        ),
+                        const Text('Recordarme'),
+                      ],
                     ),
-                    child: const Text(
-                      'Olvidé mi contraseña',
-                      style: TextStyle(decoration: TextDecoration.underline),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'Olvidé mi contraseña',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
                 const SizedBox(height: 10),
 
@@ -242,7 +278,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: _onLogin,
+                    // 5.4 Desactivar el botón si la animación está activa
+                    onPressed: _isAnimating ? null : _onLogin,
                     child: const Text('Iniciar Sesión'),
                   ),
                 ),
