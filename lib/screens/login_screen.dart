@@ -3,6 +3,8 @@ import 'dart:async'; // 3.1 Importar la librería para el temporizador
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:login_bear_animation/screens/register_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -338,8 +340,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text('¿No tienes una cuenta?'),
-                    TextButton(
-                      onPressed: () {},
+                                        TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterScreen(),
+                          ),
+                        );
+                      },
                       child: const Text(
                         'Regístrate',
                         style: TextStyle(
