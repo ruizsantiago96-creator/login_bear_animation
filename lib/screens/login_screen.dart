@@ -105,6 +105,8 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email,
         password: password,
       );
+      _emailController.clear();
+      _passwordController.clear();
       _trigSuccess?.fire();
     } on FirebaseAuthException catch (e) {
       _trigFail?.fire();
@@ -113,6 +115,43 @@ class _LoginScreenState extends State<LoginScreen> {
           _passwordError = 'Correo o contraseña incorrectos (${e.code})';
           _isAnimating = false;
         });
+      }
+    }
+  }
+
+  Future<void> _onForgotPassword() async {
+    final email = _emailController.text.trim();
+
+    if (!_isValidEmail(email)) {
+      setState(() {
+        _emailError = 'Ingresa tu correo aquí para recuperar tu contraseña';
+      });
+      _trigFail?.fire();
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      _trigSuccess?.fire();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Se envió un correo de recuperación a $email'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      _trigFail?.fire();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al enviar correo (${e.code})'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -304,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: _isAnimating ? null : _onForgotPassword,
                       child: const Text(
                         'Olvidé mi contraseña',
                         style: TextStyle(

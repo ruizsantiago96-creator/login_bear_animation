@@ -35,6 +35,18 @@ class HomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await FirebaseAuth.instance.signOut();
+                  },
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Cerrar Sesión'),
+                ),
+              ),
             ],
           ),
         ),
