@@ -2,6 +2,7 @@ import 'dart:async'; // 3.1 Importar la librería para el temporizador
 
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -64,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // 4.4 Dar acción al botón
-  void _onLogin() {
+  Future<void> _onLogin() async {
     // 4.5 De lo que escribió el usuario, quitar espacios en blanco
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -87,16 +88,30 @@ class _LoginScreenState extends State<LoginScreen> {
     _isHandsUp?.change(false);
     _numLook?.value = 50.0;
 
+    if (emailError != null || passwordError != null) {
+      _trigFail?.fire();
+      return;
+    }
+
     // 5.2 Desactivar el botón mientras se ejecuta la animación
     setState(() {
       _isAnimating = true;
     });
 
-    // 4.9 Activar triggers
-    if (emailError == null && passwordError == null) {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
       _trigSuccess?.fire();
-    } else {
+    } on FirebaseAuthException catch (e) {
       _trigFail?.fire();
+      if (mounted) {
+        setState(() {
+          _passwordError = 'Correo o contraseña incorrectos (${e.code})';
+          _isAnimating = false;
+        });
+      }
     }
   }
 
@@ -164,6 +179,39 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.authStateChanges(),
+                  builder: (context, snapshot) {
+                    final user = snapshot.data;
+                    if (user == null) return const SizedBox.shrink();
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Sesión activa: ${user.email}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
 
                 // Campo de texto para email
                 TextField(
