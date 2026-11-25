@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:login_bear_animation/screens/register_screen.dart';
+import 'package:login_bear_animation/screens/products_screen.dart';
 
 
 class LoginScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // 5.1 Variables para controlar el checkbox y el estado de la animación
   bool _rememberMe = false;
   bool _isAnimating = false;
+  bool _isLoading = false;
 
   // 1.1 Crear el cerebro de la animación
   StateMachineController? _controller;
@@ -95,26 +97,51 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 5.2 Desactivar el botón mientras se ejecuta la animación
+    // 5.2 Desactivar el botón y mostrar indicador de carga
     setState(() {
       _isAnimating = true;
+      _isLoading = true;
     });
 
     try {
+      // 5.5 Autenticar usuario en Firebase (espera breve para mostrar el loading)
+      await Future.delayed(const Duration(seconds: 2));
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       _emailController.clear();
       _passwordController.clear();
+
+      // 5.6 Apagar loading, disparar éxito del osito y esperar su animación
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       _trigSuccess?.fire();
-    } on FirebaseAuthException catch (e) {
+      await Future.delayed(const Duration(seconds: 2));
+
+      // 5.7 Navegar a la pantalla de productos de Spring Boot
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ProductsScreen()),
+      );
+    } catch (_) {
+      // 5.8 Credenciales no válidas sin mostrar error en un campo específico
       _trigFail?.fire();
       if (mounted) {
         setState(() {
-          _passwordError = 'Correo o contraseña incorrectos (${e.code})';
+          _isLoading = false;
           _isAnimating = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Credenciales no válidas'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -220,39 +247,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                StreamBuilder<User?>(
-                  stream: FirebaseAuth.instance.authStateChanges(),
-                  builder: (context, snapshot) {
-                    final user = snapshot.data;
-                    if (user == null) return const SizedBox.shrink();
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.check_circle, color: Colors.green),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Sesión activa: ${user.email}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
 
                 // Campo de texto para email
                 TextField(
@@ -367,9 +361,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    // 5.4 Desactivar el botón si la animación está activa
-                    onPressed: _isAnimating ? null : _onLogin,
-                    child: const Text('Iniciar Sesión'),
+                    // 5.4 Desactivar el botón si la animación o carga está activa
+                    onPressed: (_isAnimating || _isLoading) ? null : _onLogin,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : const Text('Iniciar Sesión'),
                   ),
                 ),
                 const SizedBox(height: 10),
